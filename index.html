@@ -950,9 +950,33 @@
           <h3 class="modal-title">데이터 동기화 &amp; 백업</h3>
           <button class="close-btn" onclick="closeModal('syncModal')">&times;</button>
         </div>
-        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.6;">
-          로그인 없이도 다른 스마트폰이나 PC로 내 암송 기록을 손쉽게 옮길 수 있습니다.
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; line-height: 1.6;">
+          로그인 없이도 다른 스마트폰이나 PC로 내 암송 기록과 등록한 말씀을 손쉽게 옮길 수 있습니다.
         </p>
+
+        <!-- 현재 기기 백업 데이터 포함 현황 카드 -->
+        <div style="background: #fff; border: 1.5px solid #d4cbb8; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+          <div style="font-size: 12px; font-weight: 700; color: var(--olive-primary); display: flex; align-items: center; gap: 4px; margin-bottom: 8px;">
+            <span>🛡️ 백업 데이터에 온전히 포함되는 항목</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-bottom: 8px;">
+            <div style="background: var(--bg-subtle); padding: 6px 4px; border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; color: var(--text-muted);">나만의 말씀</div>
+              <div id="syncCustomCount" style="font-size: 13px; font-weight: 700; color: var(--olive-primary); margin-top: 2px;">0개 구절</div>
+            </div>
+            <div style="background: var(--bg-subtle); padding: 6px 4px; border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; color: var(--text-muted);">암송 마스터</div>
+              <div id="syncMasterCount" style="font-size: 13px; font-weight: 700; color: var(--gold-accent); margin-top: 2px;">0개</div>
+            </div>
+            <div style="background: var(--bg-subtle); padding: 6px 4px; border-radius: var(--radius-sm);">
+              <div style="font-size: 11px; color: var(--text-muted);">캐릭터 성장</div>
+              <div id="syncLevelExp" style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-top: 2px;">Lv.1</div>
+            </div>
+          </div>
+          <div style="font-size: 11.5px; color: var(--olive-dark); line-height: 1.5; background: #f8f6f0; padding: 6px 8px; border-radius: var(--radius-sm);">
+            💡 <strong>나만의 말씀 본문 전체(책/장/절/번역본)</strong>와 모든 암송 진도·점수가 하나로 묶여 안전하게 이전됩니다.
+          </div>
+        </div>
 
         <!-- 내보내기 -->
         <div style="background: var(--bg-subtle); padding: 14px; border-radius: var(--radius-md); margin-bottom: 14px;">
@@ -2205,7 +2229,29 @@
     }
 
     function openSyncModal() {
+      updateSyncModalSummary();
       document.getElementById('syncModal').classList.add('open');
+    }
+
+    function updateSyncModalSummary() {
+      const customCount = (state.customVerses || []).length;
+      let masterCount = 0;
+      if (state.progress) {
+        for (const k in state.progress) {
+          if (state.progress[k] && state.progress[k].master) {
+            masterCount++;
+          }
+        }
+      }
+      const levelInfo = getLevelInfo(state.exp || 0);
+
+      const elCustom = document.getElementById('syncCustomCount');
+      const elMaster = document.getElementById('syncMasterCount');
+      const elLevel = document.getElementById('syncLevelExp');
+
+      if (elCustom) elCustom.textContent = `${customCount}개 구절`;
+      if (elMaster) elMaster.textContent = `${masterCount}개`;
+      if (elLevel) elLevel.textContent = `Lv.${levelInfo.level} (${state.exp || 0} EXP)`;
     }
 
     function closeModal(id) {
@@ -2247,19 +2293,22 @@
     }
 
     function copyBackupToClipboard() {
+      const customCount = (state.customVerses || []).length;
       const text = getBackupDataString();
+      const msg = `📋 나만의 말씀 ${customCount}개와 전체 진도가 복사되었습니다! 카톡 등에 붙여넣으세요.`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
-          showToast('📋 백업 데이터가 복사되었습니다! 카톡 등에 붙여넣으세요.');
+          showToast(msg);
         }).catch(() => {
-          fallbackCopyText(text);
+          fallbackCopyText(text, msg);
         });
       } else {
-        fallbackCopyText(text);
+        fallbackCopyText(text, msg);
       }
     }
 
-    function fallbackCopyText(text) {
+    function fallbackCopyText(text, msg) {
+      const successMsg = msg || '📋 백업 데이터가 복사되었습니다!';
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -2268,7 +2317,7 @@
       ta.select();
       try {
         document.execCommand('copy');
-        showToast('📋 백업 데이터가 복사되었습니다!');
+        showToast(successMsg);
       } catch (err) {
         showToast('복사에 실패했습니다. 아래 텍스트를 직접 복사하세요.');
       }
@@ -2276,6 +2325,7 @@
     }
 
     function downloadBackupFile() {
+      const customCount = (state.customVerses || []).length;
       const text = getBackupDataString();
       const blob = new Blob([text], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -2287,7 +2337,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast('💾 백업 파일이 다운로드되었습니다.');
+      showToast(`💾 나만의 말씀 ${customCount}개와 진도 데이터가 파일로 저장되었습니다.`);
     }
 
     function restoreBackupText() {
@@ -2335,7 +2385,8 @@
         return;
       }
 
-      if (!confirm('현재 기기의 기록을 덮어쓰고 백업 데이터를 복원하시겠습니까?')) {
+      const incomingCustomCount = Array.isArray(restoreTarget.customVerses) ? restoreTarget.customVerses.length : 0;
+      if (!confirm(`현재 기기의 기록을 덮어쓰고 백업 데이터를 복원하시겠습니까?\n(가져올 나만의 말씀: ${incomingCustomCount}개 구절)`)) {
         return;
       }
 
@@ -2346,7 +2397,7 @@
 
       saveState();
       closeModal('syncModal');
-      showToast('🎉 모든 데이터가 성공적으로 복원되었습니다!');
+      showToast(`🎉 나만의 말씀 ${state.customVerses.length}개와 모든 진도가 복원되었습니다!`);
       renderHeaderAndDashboard();
       renderVersesList();
     }
