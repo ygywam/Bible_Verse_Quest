@@ -1085,6 +1085,101 @@
       return result;
     }
 
+    /* ==========================================================================
+       [레벨 & 성장 시스템] 무한 연속 레벨업 및 점진적 난이도 곡선 계산기
+       ========================================================================== */
+    const LEVEL_TIERS = [
+      { level: 1, reqExp: 0, title: '말씀의 씨앗', avatar: '🌱' },
+      { level: 2, reqExp: 150, title: '푸른 새싹', avatar: '🪴' },
+      { level: 3, reqExp: 450, title: '풍성한 가지', avatar: '🌿' },
+      { level: 4, reqExp: 950, title: '어린 나무', avatar: '🌲' },
+      { level: 5, reqExp: 1700, title: '열매 맺는 나무', avatar: '🌳' },
+      { level: 6, reqExp: 2750, title: '은혜의 과수원', avatar: '🍎' },
+      { level: 7, reqExp: 4150, title: '생명수의 숲', avatar: '🏞️' },
+      { level: 8, reqExp: 5950, title: '말씀의 깊은 샘', avatar: '⛲' },
+      { level: 9, reqExp: 8200, title: '지혜의 거목', avatar: '🪵' },
+      { level: 10, reqExp: 10950, title: '말씀의 수호자', avatar: '⚔️' }
+    ];
+
+    function getLevelInfo(exp) {
+      const curExp = Math.max(0, exp || 0);
+
+      let curLvl = 1;
+      let title = LEVEL_TIERS[0].title;
+      let avatar = LEVEL_TIERS[0].avatar;
+      let curBaseExp = 0;
+      let nextReqExp = LEVEL_TIERS[1].reqExp;
+
+      // 1. 기본 티어 테이블(1~10레벨) 탐색
+      for (let i = 0; i < LEVEL_TIERS.length; i++) {
+        if (curExp >= LEVEL_TIERS[i].reqExp) {
+          curLvl = LEVEL_TIERS[i].level;
+          title = LEVEL_TIERS[i].title;
+          avatar = LEVEL_TIERS[i].avatar;
+          curBaseExp = LEVEL_TIERS[i].reqExp;
+          if (i + 1 < LEVEL_TIERS.length) {
+            nextReqExp = LEVEL_TIERS[i + 1].reqExp;
+          } else {
+            nextReqExp = curBaseExp + 3200;
+          }
+        } else {
+          break;
+        }
+      }
+
+      // 2. 10레벨 초과 무한 레벨업 처리 (점진적 필요 EXP 증가)
+      if (curExp >= LEVEL_TIERS[LEVEL_TIERS.length - 1].reqExp) {
+        let loopLvl = 10;
+        let loopBase = LEVEL_TIERS[LEVEL_TIERS.length - 1].reqExp;
+        let stepSpan = 3200;
+
+        while (true) {
+          const nextStep = loopBase + stepSpan;
+          if (curExp >= nextStep) {
+            loopLvl++;
+            loopBase = nextStep;
+            stepSpan += 400; // 레벨마다 400씩 추가 요구 (점진적 난이도 상승)
+          } else {
+            curLvl = loopLvl;
+            curBaseExp = loopBase;
+            nextReqExp = nextStep;
+            break;
+          }
+        }
+
+        if (curLvl >= 50) {
+          title = '영광의 암송 챔피언';
+          avatar = '👑';
+        } else if (curLvl >= 30) {
+          title = '생명수 강가의 대가';
+          avatar = '🏆';
+        } else if (curLvl >= 20) {
+          title = '지혜의 대제사장';
+          avatar = '✨';
+        } else if (curLvl >= 10) {
+          title = '말씀의 수호자';
+          avatar = '⚔️';
+        }
+      }
+
+      const neededSpan = Math.max(1, nextReqExp - curBaseExp);
+      const curSpan = Math.max(0, curExp - curBaseExp);
+      const progressPct = Math.min(100, Math.round((curSpan / neededSpan) * 100));
+
+      return {
+        level: curLvl,
+        title: title,
+        avatar: avatar,
+        badge: `${avatar} Lv.${curLvl}`,
+        totalExp: curExp,
+        curBaseExp: curBaseExp,
+        nextReqExp: nextReqExp,
+        curSpan: curSpan,
+        neededSpan: neededSpan,
+        progressPct: progressPct
+      };
+    }
+
     /* 모든 구절(기본 + 커스텀) 반환 */
     function getAllVerses() {
       const customs = (state.customVerses || []).map(v => Object.assign({}, v, { chapterId: 'custom' }));
@@ -1154,31 +1249,9 @@
       if (elHeaderNick) elHeaderNick.textContent = nick;
       if (elDashNick) elDashNick.textContent = nick;
 
-      // 캐릭터 성장 단계 및 경험치 계산
+      // 캐릭터 성장 단계 및 경험치 계산 (무한 레벨 엔진 연동)
       const exp = state.exp || 0;
-      let levelText = '말씀의 씨앗 단계';
-      let avatarIcon = '🌱';
-      let badgeText = '🌱 Lv.1';
-      let maxExp = 150;
-      let curExp = exp;
-
-      if (exp >= 1000) {
-        levelText = '열매 맺는 나무 (마스터)';
-        avatarIcon = '🌳';
-        badgeText = '🌳 Lv.4';
-        maxExp = 1000;
-        curExp = 1000;
-      } else if (exp >= 500) {
-        levelText = '풍성한 가지 단계';
-        avatarIcon = '🌿';
-        badgeText = '🌿 Lv.3';
-        maxExp = 1000;
-      } else if (exp >= 150) {
-        levelText = '푸른 새싹 단계';
-        avatarIcon = '🪴';
-        badgeText = '🪴 Lv.2';
-        maxExp = 500;
-      }
+      const levelInfo = getLevelInfo(exp);
 
       const elLevelBadge = document.getElementById('headerLevelBadge');
       const elAvatar = document.getElementById('characterAvatar');
@@ -1186,13 +1259,12 @@
       const elExpText = document.getElementById('expText');
       const elExpFill = document.getElementById('expFillBar');
 
-      if (elLevelBadge) elLevelBadge.textContent = badgeText;
-      if (elAvatar) elAvatar.textContent = avatarIcon;
-      if (elStageTitle) elStageTitle.textContent = levelText;
-      if (elExpText) elExpText.textContent = `${curExp} / ${maxExp} EXP`;
+      if (elLevelBadge) elLevelBadge.textContent = levelInfo.badge;
+      if (elAvatar) elAvatar.textContent = levelInfo.avatar;
+      if (elStageTitle) elStageTitle.textContent = `${levelInfo.title} 단계 (Lv.${levelInfo.level})`;
+      if (elExpText) elExpText.textContent = `${levelInfo.curSpan} / ${levelInfo.neededSpan} EXP (누적: ${exp} EXP)`;
       if (elExpFill) {
-        const pct = Math.min(100, Math.round((curExp / maxExp) * 100));
-        elExpFill.style.width = `${pct}%`;
+        elExpFill.style.width = `${levelInfo.progressPct}%`;
       }
 
       // 총 별, 마스터 구절, 도전 중 구절 집계
@@ -1848,27 +1920,22 @@
     function addExp(amount) {
       const oldExp = state.exp || 0;
       const newExp = oldExp + amount;
+      const oldInfo = getLevelInfo(oldExp);
+      const newInfo = getLevelInfo(newExp);
+
       state.exp = newExp;
       saveState();
       showToast(`+${amount} EXP 획득! 🌟`);
 
       // 레벨업 체크
-      const thresholds = [150, 500, 1000];
-      thresholds.forEach(th => {
-        if (oldExp < th && newExp >= th) {
-          triggerLevelUpEffect(th);
-        }
-      });
+      if (newInfo.level > oldInfo.level) {
+        triggerLevelUpEffect(newInfo);
+      }
     }
 
-    function triggerLevelUpEffect(levelExp) {
-      let title = '푸른 새싹(Lv.2)';
-      let icon = '🪴';
-      if (levelExp === 500) { title = '풍성한 가지(Lv.3)'; icon = '🌿'; }
-      if (levelExp === 1000) { title = '열매 맺는 나무(Lv.4 마스터)'; icon = '🌳'; }
-
+    function triggerLevelUpEffect(levelInfo) {
       setTimeout(() => {
-        alert(`🎉 축하합니다! 레벨업!\n\n캐릭터가 [${icon} ${title}]으로 성장했습니다!`);
+        alert(`🎉 축하합니다! 레벨업!\n\nLv.${levelInfo.level} [${levelInfo.avatar} ${levelInfo.title}] 단계로 성장하셨습니다!`);
         renderHeaderAndDashboard();
       }, 500);
     }
