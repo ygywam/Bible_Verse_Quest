@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>말씀암송 퀘스트 - Bible Verse Quest</title>
+  <meta name="description" content="IVF 핵심 암송 구절 및 나만의 말씀을 단계별 퀘스트로 외우는 게이미피케이션 암송 앱">
+  <style>
+    /* ==========================================================================
+       [1] 전역 테마 및 변수 (따뜻한 라이트 모드)
+       ========================================================================== */
+    :root {
+      --bg-app: #F7F5F0;
+      --bg-card: #FFFFFF;
+      --bg-subtle: #EFECE4;
+      --primary: #3E6B48;
+      --primary-hover: #315539;
+      --primary-light: #EBF3ED;
+      --accent-gold: #C8963E;
+      --accent-gold-light: #FDF6E9;
+      --text-main: #242926;
+      --text-sub: #5F6762;
+      --text-muted: #8E9690;
+      --border-color: #E2DDD5;
+      --border-focus: #3E6B48;
+      --danger: #D9534F;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-sm: 0 2px 6px rgba(36, 41, 38, 0.04);
+      --shadow-md: 0 4px 14px rgba(36, 41, 38, 0.08);
+      --shadow-lg: 0 10px 25px rgba(36, 41, 38, 0.12);
+      --transition-fast: 0.18s ease;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      line-height: 1.5;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 앱 모바일 컨테이너 */
+    #app {
+      width: 100%;
+      max-width: 460px;
+      min-height: 100vh;
+      background-color: var(--bg-app);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.05);
+    }
+
+    /* ==========================================================================
+       [2] 헤더 및 상단 프로필 바
+       ========================================================================== */
+    .app-header {
+      background-color: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 18px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #FFF;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--bg-subtle);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition-fast);
+    }
+
+    .user-pill:hover {
+      border-color: var(--border-color);
+      background-color: #E8E4DA;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 17px;
+      transition: var(--transition-fast);
+      color: var(--text-main);
+    }
+
+    .icon-btn:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    /* ==========================================================================
+       [3] 메인 화면 뷰 컨테이너
+       ========================================================================== */
+    .view-content {
+      flex: 1;
+      padding: 16px;
+      padding-bottom: 84px; /* 하단 네비게이션 여백 */
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .view-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       [4] 하단 탭 바 (내비게이션)
+       ========================================================================== */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 460px;
+      height: 64px;
+      background-color: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 50;
+      padding: 0 8px;
+    }
+
+    .nav-item {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      transition: var(--transition-fast);
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-item.active svg {
+      stroke: var(--primary);
+    }
+
+    /* ==========================================================================
+       [5] 공통 컴포넌트 (버튼, 카드, 모달, 뱃지)
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      min-height: 46px;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFF;
+      box-shadow: 0 3px 8px rgba(62, 107, 72, 0.25);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    /* 모달 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.45);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 0;
+    }
+
+    @media (min-width: 480px) {
+      .modal-overlay {
+        align-items: center;
+        padding: 20px;
+      }
+    }
+
+    .modal-overlay.open {
+      display: flex;
+      animation: modalFadeIn 0.2s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 460px;
+      background-color: var(--bg-card);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 22px 20px 28px;
+      box-shadow: var(--shadow-lg);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @media (min-width: 480px) {
+      .modal-sheet {
+        border-radius: var(--radius-lg);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .close-btn:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    /* 대시보드 경험치 바 */
+    .exp-track {
+      width: 100%;
+      height: 8px;
+      background-color: var(--bg-subtle);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .exp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent-gold));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    /* 칩 탭 */
+    .chip-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .chip-tab:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .chip-tab.active {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: #FFF;
+      box-shadow: 0 2px 6px rgba(62, 107, 72, 0.25);
+    }
+
+    /* 구절 카드 */
+    .verse-card {
+      background-color: var(--bg-card);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .verse-card:active {
+      transform: scale(0.99);
+    }
+
+    .verse-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .verse-ref {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .verse-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background-color: var(--bg-subtle);
+      color: var(--text-sub);
+    }
+
+    .verse-preview {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.5;
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .verse-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--bg-subtle);
+    }
+
+    .quest-badge {
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .quest-badge.mastered {
+      color: var(--accent-gold);
+    }
+
+    .quest-badge.progress {
+      color: var(--primary);
+    }
+
+    .quest-badge.not-started {
+      color: var(--text-muted);
+    }
+
+    /* 검색창 */
+    .search-bar {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-card);
+      outline: none;
+      margin-bottom: 12px;
+      font-family: inherit;
+    }
+
+    .search-bar:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* ==========================================================================
+       [퀘스트 엔진 스타일]
+       ========================================================================== */
+    .quest-stepper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .quest-stepper::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      right: 14px;
+      height: 2px;
+      background-color: var(--border-color);
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+
+    .step-node {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--bg-card);
+      border: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      z-index: 2;
+      transition: var(--transition-fast);
+    }
+
+    .step-node.active {
+      border-color: var(--primary);
+      background-color: var(--primary);
+      color: #FFF;
+      box-shadow: 0 0 0 4px var(--primary-light);
+    }
+
+    .step-node.done {
+      border-color: var(--accent-gold);
+      background-color: var(--accent-gold);
+      color: #FFF;
+    }
+
+    .verse-stage-card {
+      background-color: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      padding: 22px 18px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .verse-big-text {
+      font-size: 20px;
+      line-height: 1.8;
+      font-weight: 600;
+      color: var(--text-main);
+      word-break: keep-all;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .interactive-word {
+      padding: 2px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-block;
+    }
+
+    .interactive-word.blind {
+      background-color: var(--bg-subtle);
+      color: transparent;
+      user-select: none;
+      border-bottom: 2px dashed var(--text-muted);
+    }
+
+    .interactive-word.blind:hover {
+      background-color: #E2DDD3;
+    }
+
+    /* 3단계 퍼즐 조립판 */
+    .puzzle-target-board {
+      min-height: 100px;
+      background-color: var(--bg-subtle);
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .puzzle-source-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .word-chip-btn {
+      padding: 8px 14px;
+      border-radius: 20px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-fast);
+      touch-action: manipulation;
+    }
+
+    .word-chip-btn:active {
+      transform: scale(0.94);
+    }
+
+    .word-chip-btn.in-board {
+      background-color: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .word-chip-btn.disabled {
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    /* 빈칸 퀴즈 옵션 그리드 */
+    .quiz-options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .quiz-btn {
+      padding: 14px 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-card);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .quiz-btn:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .quiz-btn.correct {
+      background-color: var(--primary) !important;
+      color: #FFF !important;
+      border-color: var(--primary) !important;
+    }
+
+    .quiz-btn.wrong {
+      background-color: var(--danger) !important;
+      color: #FFF !important;
+      border-color: var(--danger) !important;
+      animation: shake 0.35s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+
+    /* 축하 모달 */
+    .congrats-dialog {
+      text-align: center;
+      padding: 26px 16px;
+    }
+
+    .congrats-emoji {
+      font-size: 56px;
+      margin-bottom: 10px;
+      animation: bounce 0.6s ease infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-8px); }
+    }
+
+    /* 토스트 메시지 */
+    #toast {
+      position: fixed;
+      bottom: 76px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background-color: rgba(36, 41, 38, 0.92);
+      color: #FFF;
+      padding: 10px 18px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+      box-shadow: var(--shadow-md);
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+    <!-- 상단 헤더 -->
+    <header class="app-header">
+      <div class="brand" onclick="switchView('home')">
+        <div class="brand-icon">✝</div>
+        <div class="brand-title">말씀암송 퀘스트</div>
+      </div>
+      <div class="header-actions">
+        <div class="user-pill" id="userPill" onclick="openProfileModal()">
+          <span id="headerLevelBadge">🌱 Lv.1</span>
+          <span id="headerNickname">믿음의 용사</span>
+        </div>
+        <button class="icon-btn" onclick="openSyncModal()" title="데이터 백업 및 동기화" aria-label="데이터 동기화">
+          🔄
+        </button>
+      </div>
+    </header>
+
+    <!-- 뷰 1: 홈 / 대시보드 -->
+    <main id="view-home" class="view-content active">
+      <section class="card" id="heroCard">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div id="characterAvatar" style="font-size: 38px; background: var(--primary-light); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);">
+            🌱
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-sub); font-weight: 600;" id="characterStageTitle">말씀의 씨앗 단계</span>
+              <span style="font-size: 12px; font-weight: 700; color: var(--primary);" id="expText">0 / 150 EXP</span>
+            </div>
+            <div style="font-size: 19px; font-weight: 800; color: var(--text-main); margin: 2px 0;" id="dashboardNickname">믿음의 용사</div>
+            <div class="exp-track">
+              <div class="exp-fill" id="expFillBar" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-around; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); text-align: center;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">마스터 구절</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--primary);" id="masteredCount">0</div>
+          </div>
+          <div style="border-left: 1px solid var(--border-color); height: 28px; margin: auto 0;"></div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">획득 별</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--accent-gold);">⭐ <span id="totalStars">0</span></div>
+          </div>
+          <div style="border-left: 1px solid var(--border-color); height: 28px; margin: auto 0;"></div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">도전 중</div>
+            <div style="font-size: 18px; font-weight: 800; color: var(--text-main);" id="inProgressCount">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 챕터별 진도 현황 -->
+      <div style="margin: 20px 0 10px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main);">챕터별 퀘스트 진도</h2>
+      </div>
+      <div id="homeChapterProgress"></div>
+
+      <!-- 오늘의 추천 퀘스트 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 22px 0 10px;">
+        <h2 style="font-size: 16px; font-weight: 700; color: var(--text-main);">오늘의 추천 퀘스트</h2>
+        <button class="btn btn-outline" style="min-height: 32px; padding: 4px 10px; font-size: 12px;" onclick="switchView('verses')">
+          전체 보기 &rarr;
+        </button>
+      </div>
+      <div id="homeQuickList"></div>
+    </main>
+
+    <!-- 뷰 2: 구절 탐색 및 선택 -->
+    <section id="view-verses" class="view-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 style="font-size: 18px; font-weight: 700;">말씀 보관함</h2>
+        <button class="btn btn-primary" style="min-height: 38px; padding: 8px 14px; font-size: 13px;" onclick="openAddVerseModal()">
+          + 새 구절 추가
+        </button>
+      </div>
+      <!-- 검색창 -->
+      <input type="text" class="search-bar" id="verseSearchInput" placeholder="🔍 구절 또는 본문 검색 (예: 요한복음, 사랑)..." oninput="handleSearch()">
+      <!-- 챕터 필터 탭 -->
+      <div id="chapterTabs" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;"></div>
+      <!-- 구절 목록 -->
+      <div id="versesListContainer"></div>
+
+      <!-- 출처 표기 푸터 -->
+      <div style="text-align: center; padding: 20px 10px; font-size: 12px; color: var(--text-muted); line-height: 1.5; border-top: 1px solid var(--border-color); margin-top: 24px;">
+        성경전서 개역개정판의 저작권은 대한성서공회에 있으며,<br>
+        본 앱은 성도 및 학생들의 개인 말씀 훈련을 위해 발췌·수록하였습니다.
+      </div>
+    </section>
+
+    <!-- 뷰 3: 5단계 암송 퀘스트 화면 -->
+    <section id="view-quest" class="view-content">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+        <button class="btn btn-outline" style="min-height: 36px; padding: 6px 12px; font-size: 13px;" onclick="switchView('verses')">
+          &larr; 목록으로
+        </button>
+        <span id="questVerseRef" style="font-size: 15px; font-weight: 700; color: var(--primary);">요한복음 3:16</span>
+        <span id="questStepIndicator" style="font-size: 13px; font-weight: 700; background: var(--bg-subtle); padding: 4px 10px; border-radius: 12px;">
+          1/5단계
+        </span>
+      </div>
+      <div id="questStageContainer"></div>
+    </section>
+
+    <!-- 하단 탭 내비게이션 바 -->
+    <nav class="nav-bar">
+      <button class="nav-item active" onclick="switchView('home')" id="nav-home">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <span>홈</span>
+      </button>
+      <button class="nav-item" onclick="switchView('verses')" id="nav-verses">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        <span>말씀 목록</span>
+      </button>
+      <button class="nav-item" onclick="openAddVerseModal()">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+        <span>구절 추가</span>
+      </button>
+      <button class="nav-item" onclick="openSyncModal()">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+        <span>동기화</span>
+      </button>
+    </nav>
+
+    <!-- ==========================================================================
+         [모달 1] 닉네임 변경 모달
+         ========================================================================== -->
+    <div id="profileModal" class="modal-overlay" onclick="closeModalOnBackdrop(event, 'profileModal')">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 class="modal-title">프로필 설정</h3>
+          <button class="close-btn" onclick="closeModal('profileModal')">&times;</button>
+        </div>
+        <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 14px;">
+          암송 여정에 사용할 닉네임을 입력하세요. (기기 내부에만 저장됩니다)
+        </p>
+        <input type="text" id="nicknameInput" maxlength="15" placeholder="닉네임 입력 (예: 은혜로운자)" 
+               style="width: 100%; padding: 12px 14px; font-size: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 16px; outline: none;">
+        <button class="btn btn-primary" style="width: 100%;" onclick="saveNickname()">저장하기</button>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         [모달 2] 구절 추가 모달
+         ========================================================================== -->
+    <div id="addVerseModal" class="modal-overlay" onclick="closeModalOnBackdrop(event, 'addVerseModal')">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 class="modal-title">나만의 말씀 추가</h3>
+          <button class="close-btn" onclick="closeModal('addVerseModal')">&times;</button>
+        </div>
+        <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px; background: var(--bg-subtle); padding: 10px 12px; border-radius: var(--radius-sm); line-height: 1.5;">
+          💡 <strong>스마트 자동 완성</strong>: 성경 앱이나 웹에서 복사한 본문을 그대로 붙여넣으면 [책/장/절]을 자동으로 찾아냅니다!
+          <div style="margin-top: 8px;">
+            <a href="https://bible.godpeople.com/" target="_blank" rel="noopener noreferrer" 
+               style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">
+              🔗 갓피아 성경에서 구절 복사해오기 &nearr;
+            </a>
+          </div>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">구절 본문 또는 복사한 텍스트</label>
+          <textarea id="rawVerseInput" rows="3" placeholder="예: 요한복음 3:16 하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니..."
+                    oninput="autoParseVerseText()"
+                    style="width: 100%; padding: 10px; font-size: 15px; border: 1px solid var(--border-color); border-radius: var(--radius-md); outline: none; font-family: inherit;"></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">책 이름</label>
+            <input type="text" id="inputBook" placeholder="요한복음" style="width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">장</label>
+            <input type="number" id="inputChapter" placeholder="3" style="width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">절</label>
+            <input type="text" id="inputVerseNum" placeholder="16" style="width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          </div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">번역본</label>
+          <select id="inputVersion" style="width: 100%; padding: 9px 10px; font-size: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: #FFF;" onchange="autoParseVerseText()">
+            <option value="개역개정" selected>개역개정</option>
+            <option value="개역한글">개역한글</option>
+            <option value="쉬운성경">쉬운성경</option>
+            <option value="NIV">NIV (영어)</option>
+            <option value="NLT">NLT (영어)</option>
+          </select>
+        </div>
+
+        <!-- 다중 절(장 전체) 감지 시 나타나는 스마트 배너 -->
+        <div id="bulkDetectBanner" style="display: none; background: #FFF8E7; border: 1px solid var(--accent-gold); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px;">
+          <div style="font-size: 14px; font-weight: 800; color: #8A6412; display: flex; align-items: center; gap: 6px;">
+            <span>✨</span>
+            <span id="bulkTitle">장 전체(다중 절)가 감지되었습니다!</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-sub); margin: 6px 0 8px; line-height: 1.5;">
+            소제목과 웹 복사 문구를 정제하고 <strong>각 절을 개별 암송 카드로 분할</strong>하여 암송 퀘스트를 편리하게 진행할 수 있도록 준비했습니다.
+          </p>
+          <div id="bulkPreviewBox" style="max-height: 110px; overflow-y: auto; background: #FFF; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 10px; font-size: 12px; color: var(--text-main); margin-bottom: 10px;">
+          </div>
+          <button class="btn btn-primary" style="width: 100%; min-height: 42px; font-size: 14px; background: linear-gradient(135deg, var(--primary), #2D5236);" onclick="submitBulkVerses()">
+            ⚡ <span id="bulkSubmitCount">총 0개 절</span> 각각 카드로 일괄 등록 (추천)
+          </button>
+          <div style="text-align: center; margin-top: 8px;">
+            <button onclick="submitSingleCustomVerse()" style="background: none; border: none; font-size: 12px; color: var(--text-muted); cursor: pointer; text-decoration: underline;">
+              분할하지 않고 하나의 긴 카드로 등록하기
+            </button>
+          </div>
+        </div>
+
+        <!-- 단일 구절 등록 버튼 (기본) -->
+        <div id="singleSubmitContainer">
+          <button class="btn btn-primary" style="width: 100%;" onclick="submitCustomVerse()">보관함에 저장하기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         [모달 3] 데이터 백업 및 동기화 모달
+         ========================================================================== -->
+    <div id="syncModal" class="modal-overlay" onclick="closeModalOnBackdrop(event, 'syncModal')">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h3 class="modal-title">데이터 동기화 &amp; 백업</h3>
+          <button class="close-btn" onclick="closeModal('syncModal')">&times;</button>
+        </div>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.6;">
+          로그인 없이도 다른 스마트폰이나 PC로 내 암송 기록을 손쉽게 옮길 수 있습니다.
+        </p>
+
+        <!-- 내보내기 -->
+        <div style="background: var(--bg-subtle); padding: 14px; border-radius: var(--radius-md); margin-bottom: 14px;">
+          <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">📤 다른 기기로 내보내기</h4>
+          <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 10px;">
+            클립보드에 복사해 카카오톡 등으로 나에게 보낸 뒤, 다른 기기에서 붙여넣으세요.
+          </p>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="flex: 1; min-height: 38px; font-size: 13px;" onclick="copyBackupToClipboard()">
+              📋 텍스트 복사
+            </button>
+            <button class="btn btn-outline" style="flex: 1; min-height: 38px; font-size: 13px;" onclick="downloadBackupFile()">
+              💾 파일 저장
+            </button>
+          </div>
+        </div>
+
+        <!-- 가져오기 -->
+        <div style="background: var(--bg-subtle); padding: 14px; border-radius: var(--radius-md); margin-bottom: 14px;">
+          <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">📥 다른 기기에서 가져오기</h4>
+          <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">
+            복사해둔 백업 데이터를 아래에 붙여넣고 [복원하기]를 누르세요.
+          </p>
+          <textarea id="importTextInput" rows="2" placeholder="백업 데이터를 여기에 붙여넣기..."
+                    style="width: 100%; padding: 8px; font-size: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; margin-bottom: 8px;"></textarea>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary" style="flex: 1; min-height: 38px; font-size: 13px;" onclick="restoreBackupText()">
+              복원 적용
+            </button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleFileRestore(event)">
+            <button class="btn btn-outline" style="flex: 1; min-height: 38px; font-size: 13px;" onclick="document.getElementById('importFileInput').click()">
+              파일 불러오기
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 토스트 알림 메시지 바 -->
+    <div id="toast">알림 메시지</div>
+  </div>
+
+  <!-- ==========================================================================
+       [6] 핵심 자바스크립트 로직 (상태 관리 및 라우팅)
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       [데이터셋] IVF 핵심 암송 구절 (개역개정)
+       출처: 성경전서 개역개정판 © 대한성서공회 (인용 및 교육 목적 수록)
+       ========================================================================== */
+    const CHAPTERS = [
+      { id: 'all', title: '전체 보기', icon: '📖' },
+      { id: 'ch1', title: '1. 복음의 기초', icon: '✝️' },
+      { id: 'ch2', title: '2. 새로운 삶', icon: '🌿' },
+      { id: 'ch3', title: '3. 제자도와 기도', icon: '🙏' },
+      { id: 'ch4', title: '4. 하나님 나라와 사명', icon: '🌍' },
+      { id: 'custom', title: '나만의 말씀', icon: '⭐' }
+    ];
+
+    const DEFAULT_VERSES = [
+      /* 챕터 1. 복음의 기초 */
+      { id: 'ivf-1', chapterId: 'ch1', reference: '창세기 1:1', text: '태초에 하나님이 천지를 창조하시니라', version: '개역개정' },
+      { id: 'ivf-2', chapterId: 'ch1', reference: '로마서 3:23', text: '모든 사람이 죄를 범하였으매 하나님의 영광에 이르지 못하더니', version: '개역개정' },
+      { id: 'ivf-3', chapterId: 'ch1', reference: '로마서 6:23', text: '죄의 삯은 사망이요 하나님의 은사는 그리스도 예수 우리 주 안에 있는 영생이니라', version: '개역개정' },
+      { id: 'ivf-4', chapterId: 'ch1', reference: '로마서 5:8', text: '우리가 아직 죄인 되었을 때에 그리스도께서 우리를 위하여 죽으심으로 하나님께서 우리에 대한 자기의 사랑을 확증하셨느니라', version: '개역개정' },
+      { id: 'ivf-5', chapterId: 'ch1', reference: '요한복음 1:12', text: '영접하는 자 곧 그 이름을 믿는 자들에게는 하나님의 자녀가 되는 권세를 주셨으니', version: '개역개정' },
+      { id: 'ivf-6', chapterId: 'ch1', reference: '요한복음 3:16', text: '하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라', version: '개역개정' },
+      { id: 'ivf-7', chapterId: 'ch1', reference: '에베소서 2:8-9', text: '너희는 그 은혜에 의하여 믿음으로 말미암아 구원을 받았으니 이것은 너희에게서 난 것이 아니요 하나님의 선물이라 행위에서 난 것이 아니니 이는 누구든지 자랑하지 못하게 함이라', version: '개역개정' },
+      { id: 'ivf-8', chapterId: 'ch1', reference: '요한일서 5:11-12', text: '또 증거는 이것이니 하나님이 우리에게 영생을 주신 것과 이 생명이 그의 아들 안에 있는 그것이니라 아들이 있는 자에게는 생명이 있고 하나님의 아들이 없는 자에게는 생명이 없느니라', version: '개역개정' },
+
+      /* 챕터 2. 새로운 삶 */
+      { id: 'ivf-9', chapterId: 'ch2', reference: '고린도후서 5:17', text: '그런즉 누구든지 그리스도 안에 있으면 새로운 피조물이라 이전 것은 지나갔으니 보라 새 것이 되었도다', version: '개역개정' },
+      { id: 'ivf-10', chapterId: 'ch2', reference: '갈라디아서 2:20', text: '내가 그리스도와 함께 십자가에 못 박혔나니 그런즉 이제는 내가 사는 것이 아니요 오직 내 안에 그리스도께서 사시는 것이라 이제 내가 육체 가운데 사는 것은 나를 사랑하사 나를 위하여 자기 자신을 버리신 하나님의 아들을 믿는 믿음 안에서 사는 것이라', version: '개역개정' },
+      { id: 'ivf-11', chapterId: 'ch2', reference: '로마서 12:1-2', text: '그러므로 형제들아 내가 하나님의 모든 자비하심으로 너희를 권하노니 너희 몸을 하나님이 기뻐하시는 거룩한 산 제물로 드리라 이는 너희가 드릴 영적 예배니라 너희는 이 세대를 본받지 말고 오직 마음을 새롭게 함으로 변화를 받아 하나님의 선하시고 기뻐하시고 온전하신 뜻이 무엇인지 분별하도록 하라', version: '개역개정' },
+      { id: 'ivf-12', chapterId: 'ch2', reference: '갈라디아서 5:22-23', text: '오직 성령의 열매는 사랑과 희락과 화평과 오래 참음과 자비와 양선과 충성과 온유와 절제니 이같은 것을 금지할 법이 없느니라', version: '개역개정' },
+      { id: 'ivf-13', chapterId: 'ch2', reference: '빌립보서 4:13', text: '내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라', version: '개역개정' },
+
+      /* 챕터 3. 제자도와 기도 */
+      { id: 'ivf-14', chapterId: 'ch3', reference: '디모데후서 3:16-17', text: '모든 성경은 하나님의 감동으로 된 것으로 교훈과 책망과 바르게 함과 의로 교육하기에 유익하니 이는 하나님의 사람으로 온전하게 하며 모든 선한 일을 행할 능력을 갖추게 하려 함이라', version: '개역개정' },
+      { id: 'ivf-15', chapterId: 'ch3', reference: '여호수아 1:8', text: '이 율법책을 네 입에서 떠나지 말게 하며 주야로 그것을 묵상하여 그 안에 기록된 대로 다 지켜 행하라 그리하면 네 길이 평탄하게 될 것이며 네가 형통하리라', version: '개역개정' },
+      { id: 'ivf-16', chapterId: 'ch3', reference: '시편 119:105', text: '주의 말씀은 내 발에 등이요 내 길에 빛이니이다', version: '개역개정' },
+      { id: 'ivf-17', chapterId: 'ch3', reference: '요한복음 15:7', text: '너희가 내 안에 거하고 내 말이 너희 안에 거하면 무엇이든지 원하는 대로 구하라 그리하면 이루리라', version: '개역개정' },
+      { id: 'ivf-18', chapterId: 'ch3', reference: '빌립보서 4:6-7', text: '아무 것도 염려하지 말고 다만 모든 일에 기도와 간구로, 너희 구할 것을 감사함으로 하나님께 아뢰라 그리하면 모든 지각에 뛰어난 하나님의 평강이 그리스도 예수 안에서 너희 마음과 생각을 지키시리라', version: '개역개정' },
+      { id: 'ivf-19', chapterId: 'ch3', reference: '히브리서 10:24-25', text: '서로 돌아보아 사랑과 선행을 격려하며 모이기를 폐하는 어떤 사람들의 습관과 같이 하지 말고 오직 권하여 그 날이 가까움을 볼수록 더욱 그리하자', version: '개역개정' },
+
+      /* 챕터 4. 하나님 나라와 사명 */
+      { id: 'ivf-20', chapterId: 'ch4', reference: '마태복음 6:33', text: '그런즉 너희는 먼저 그의 나라와 그의 의를 구하라 그리하면 이 모든 것을 너희에게 더하시리라', version: '개역개정' },
+      { id: 'ivf-21', chapterId: 'ch4', reference: '마가복음 10:45', text: '인자가 온 것은 섬김을 받으려 함이 아니라 도리어 섬기려 하고 자기 목숨을 많은 사람의 대속물로 주려 함이니라', version: '개역개정' },
+      { id: 'ivf-22', chapterId: 'ch4', reference: '마태복음 28:19-20', text: '그러므로 너희는 가서 모든 민족을 제자로 삼아 아버지와 아들과 성령의 이름으로 세례를 베풀고 내가 너희에게 분부한 모든 것을 가르쳐 지키게 하라 볼지어다 내가 세상 끝날까지 너희와 항상 함께 있으리라 하시니라', version: '개역개정' },
+      { id: 'ivf-23', chapterId: 'ch4', reference: '사도행전 1:8', text: '오직 성령이 너희에게 임하시면 너희가 권능을 받고 예루살렘과 온 유대와 사마리아와 땅 끝까지 이르러 내 증인이 되리라 하시니라', version: '개역개정' },
+      { id: 'ivf-24', chapterId: 'ch4', reference: '베드로전서 3:15', text: '너희 마음에 그리스도를 주로 삼아 거룩하게 하고 너희 속에 있는 소망에 관한 이유를 묻는 자에게는 대답할 것을 항상 준비하되 온유와 두려움으로 하고', version: '개역개정' }
+    ];
+
+    /* 한글 초성 추출 유틸리티 */
+    const CHOSUNG_LIST = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+    function getChosung(text) {
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i) - 44032;
+        if (code >= 0 && code <= 11171) {
+          result += CHOSUNG_LIST[Math.floor(code / 588)];
+        } else {
+          result += text[i];
+        }
+      }
+      return result;
+    }
+
+    /* 모든 구절(기본 + 커스텀) 반환 */
+    function getAllVerses() {
+      const customs = (state.customVerses || []).map(v => Object.assign({}, v, { chapterId: 'custom' }));
+      return [...DEFAULT_VERSES, ...customs];
+    }
+
+    /* 기본 앱 상태 정의 */
+    const STORAGE_KEY = 'BIBLE_QUEST_DATA_V1';
+
+    let state = {
+      nickname: '믿음의 용사',
+      exp: 0,
+      customVerses: [],
+      // progress: { [verseId]: { level: 1~5, stars: 0~3, lastPracticed: timestamp } }
+      progress: {}
+    };
+
+    let currentChapter = 'all';
+    let searchKeyword = '';
+
+    /* 초기화 */
+    function initState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          state = Object.assign({}, state, JSON.parse(saved));
+        }
+      } catch (e) {
+        console.error('로컬스토리지 로드 실패:', e);
+      }
+      renderHeaderAndDashboard();
+      renderChapterTabs();
+      renderVersesList();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error('로컬스토리지 저장 실패:', e);
+      }
+      renderHeaderAndDashboard();
+      renderVersesList();
+    }
+
+    /* 화면 전환 라우터 */
+    function switchView(viewName) {
+      document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+      const targetView = document.getElementById(`view-${viewName}`);
+      const targetNav = document.getElementById(`nav-${viewName}`);
+
+      if (targetView) targetView.classList.add('active');
+      if (targetNav) targetNav.classList.add('active');
+      window.scrollTo(0, 0);
+
+      if (viewName === 'home') renderHeaderAndDashboard();
+      if (viewName === 'verses') renderVersesList();
+    }
+
+    /* 헤더 및 대시보드 렌더링 */
+    function renderHeaderAndDashboard() {
+      const nick = state.nickname || '믿음의 용사';
+      const elHeaderNick = document.getElementById('headerNickname');
+      const elDashNick = document.getElementById('dashboardNickname');
+      if (elHeaderNick) elHeaderNick.textContent = nick;
+      if (elDashNick) elDashNick.textContent = nick;
+
+      // 캐릭터 성장 단계 및 경험치 계산
+      const exp = state.exp || 0;
+      let levelText = '말씀의 씨앗 단계';
+      let avatarIcon = '🌱';
+      let badgeText = '🌱 Lv.1';
+      let maxExp = 150;
+      let curExp = exp;
+
+      if (exp >= 1000) {
+        levelText = '열매 맺는 나무 (마스터)';
+        avatarIcon = '🌳';
+        badgeText = '🌳 Lv.4';
+        maxExp = 1000;
+        curExp = 1000;
+      } else if (exp >= 500) {
+        levelText = '풍성한 가지 단계';
+        avatarIcon = '🌿';
+        badgeText = '🌿 Lv.3';
+        maxExp = 1000;
+      } else if (exp >= 150) {
+        levelText = '푸른 새싹 단계';
+        avatarIcon = '🪴';
+        badgeText = '🪴 Lv.2';
+        maxExp = 500;
+      }
+
+      const elLevelBadge = document.getElementById('headerLevelBadge');
+      const elAvatar = document.getElementById('characterAvatar');
+      const elStageTitle = document.getElementById('characterStageTitle');
+      const elExpText = document.getElementById('expText');
+      const elExpFill = document.getElementById('expFillBar');
+
+      if (elLevelBadge) elLevelBadge.textContent = badgeText;
+      if (elAvatar) elAvatar.textContent = avatarIcon;
+      if (elStageTitle) elStageTitle.textContent = levelText;
+      if (elExpText) elExpText.textContent = `${curExp} / ${maxExp} EXP`;
+      if (elExpFill) {
+        const pct = Math.min(100, Math.round((curExp / maxExp) * 100));
+        elExpFill.style.width = `${pct}%`;
+      }
+
+      // 총 별, 마스터 구절, 도전 중 구절 집계
+      let totalStars = 0;
+      let mastered = 0;
+      let inProgress = 0;
+
+      const allVerses = getAllVerses();
+      allVerses.forEach(v => {
+        const p = (state.progress && state.progress[v.id]) || { level: 0, stars: 0 };
+        totalStars += (p.stars || 0);
+        if (p.level >= 5) mastered++;
+        else if (p.level > 0) inProgress++;
+      });
+
+      const elStars = document.getElementById('totalStars');
+      const elMastered = document.getElementById('masteredCount');
+      const elInProgress = document.getElementById('inProgressCount');
+      if (elStars) elStars.textContent = totalStars;
+      if (elMastered) elMastered.textContent = mastered;
+      if (elInProgress) elInProgress.textContent = inProgress;
+
+      // 챕터별 진도 현황 렌더링
+      const chapContainer = document.getElementById('homeChapterProgress');
+      if (chapContainer) {
+        const realChapters = CHAPTERS.filter(c => c.id !== 'all');
+        chapContainer.innerHTML = realChapters.map(ch => {
+          const chVerses = allVerses.filter(v => ch.id === 'custom' ? v.chapterId === 'custom' : v.chapterId === ch.id);
+          const total = chVerses.length;
+          const done = chVerses.filter(v => (state.progress && state.progress[v.id] && state.progress[v.id].level >= 5)).length;
+          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+          return `
+            <div class="card" style="padding: 12px 14px; margin-bottom: 8px; cursor: pointer;" onclick="selectChapterAndGo('${ch.id}')">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">${ch.icon} ${ch.title}</span>
+                <span style="font-size: 12px; font-weight: 700; color: ${pct === 100 ? 'var(--accent-gold)' : 'var(--primary)'};">
+                  ${done}/${total} 구절 (${pct}%)
+                </span>
+              </div>
+              <div class="exp-track" style="margin-top: 0; height: 6px;">
+                <div class="exp-fill" style="width: ${pct}%; background: ${pct === 100 ? 'var(--accent-gold)' : 'var(--primary)'};"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 오늘의 추천 퀘스트 렌더링 (아직 마스터하지 않은 구절 중 3개)
+      const quickContainer = document.getElementById('homeQuickList');
+      if (quickContainer) {
+        const unmastered = allVerses.filter(v => {
+          const p = state.progress && state.progress[v.id];
+          return !p || p.level < 5;
+        }).slice(0, 3);
+
+        if (unmastered.length === 0) {
+          quickContainer.innerHTML = `
+            <div class="card" style="text-align: center; padding: 24px;">
+              <div style="font-size: 32px; margin-bottom: 8px;">👑</div>
+              <div style="font-weight: 700;">모든 말씀을 마스터하셨습니다!</div>
+              <div style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">나만의 새 구절을 추가해 암송을 계속해보세요.</div>
+            </div>
+          `;
+        } else {
+          quickContainer.innerHTML = unmastered.map(v => {
+            const p = (state.progress && state.progress[v.id]) || { level: 0, stars: 0 };
+            return `
+              <div class="verse-card">
+                <div class="verse-header">
+                  <span class="verse-ref">${v.reference}</span>
+                  <span class="verse-tag">${v.version || '개역개정'}</span>
+                </div>
+                <div class="verse-preview">${v.text}</div>
+                <div class="verse-footer">
+                  <span class="quest-badge ${p.level > 0 ? 'progress' : 'not-started'}">
+                    ${p.level > 0 ? `🔥 ${p.level}단계 진행 중` : '✨ 새로운 퀘스트'}
+                  </span>
+                  <button class="btn btn-primary" style="min-height: 34px; padding: 6px 14px; font-size: 13px;" onclick="startQuest('${v.id}')">
+                    암송 시작 &rarr;
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    /* 챕터 탭 렌더링 */
+    function renderChapterTabs() {
+      const container = document.getElementById('chapterTabs');
+      if (!container) return;
+
+      container.innerHTML = CHAPTERS.map(ch => {
+        const isActive = currentChapter === ch.id;
+        return `
+          <button class="chip-tab ${isActive ? 'active' : ''}" onclick="selectChapterTab('${ch.id}')">
+            <span>${ch.icon}</span>
+            <span>${ch.title}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectChapterTab(chId) {
+      currentChapter = chId;
+      renderChapterTabs();
+      renderVersesList();
+    }
+
+    function selectChapterAndGo(chId) {
+      currentChapter = chId;
+      switchView('verses');
+      renderChapterTabs();
+      renderVersesList();
+    }
+
+    /* 검색 처리 */
+    function handleSearch() {
+      const input = document.getElementById('verseSearchInput');
+      searchKeyword = (input ? input.value : '').trim().toLowerCase();
+      renderVersesList();
+    }
+
+    /* 말씀 보관함 목록 렌더링 */
+    function renderVersesList() {
+      const container = document.getElementById('versesListContainer');
+      if (!container) return;
+
+      let verses = getAllVerses();
+
+      // 챕터 필터링
+      if (currentChapter !== 'all') {
+        verses = verses.filter(v => v.chapterId === currentChapter);
+      }
+
+      // 검색어 필터링
+      if (searchKeyword) {
+        verses = verses.filter(v => 
+          v.reference.toLowerCase().includes(searchKeyword) || 
+          v.text.toLowerCase().includes(searchKeyword)
+        );
+      }
+
+      if (verses.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="text-align: center; padding: 32px 16px;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+            <div style="font-weight: 700; color: var(--text-main);">해당하는 구절이 없습니다.</div>
+            <div style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">
+              ${currentChapter === 'custom' ? '상단의 [+ 새 구절 추가]를 눌러 나만의 말씀을 등록해 보세요!' : '다른 검색어를 입력해 보세요.'}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = verses.map(v => {
+        const p = (state.progress && state.progress[v.id]) || { level: 0, stars: 0 };
+        const isMastered = p.level >= 5;
+        const isCustom = v.chapterId === 'custom';
+
+        let badgeHtml = '<span class="quest-badge not-started">미도전</span>';
+        if (isMastered) {
+          badgeHtml = `<span class="quest-badge mastered">👑 마스터 (⭐${p.stars || 3})</span>`;
+        } else if (p.level > 0) {
+          badgeHtml = `<span class="quest-badge progress">🌱 ${p.level}/5단계 진행</span>`;
+        }
+
+        return `
+          <div class="verse-card">
+            <div class="verse-header">
+              <span class="verse-ref">${v.reference}</span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="verse-tag">${v.version || '개역개정'}</span>
+                ${isCustom ? `<button onclick="deleteCustomVerse('${v.id}')" title="삭제" style="background: none; border: none; font-size: 14px; cursor: pointer; color: var(--danger); padding: 2px 4px;">🗑️</button>` : ''}
+              </div>
+            </div>
+            <div class="verse-preview">${v.text}</div>
+            <div class="verse-footer">
+              ${badgeHtml}
+              <button class="btn ${isMastered ? 'btn-outline' : 'btn-primary'}" 
+                      style="min-height: 34px; padding: 6px 14px; font-size: 13px;"
+                      onclick="startQuest('${v.id}')">
+                ${isMastered ? '복습하기' : '암송 시작'} &rarr;
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ==========================================================================
+       [TASK 5 & 6] 5단계 게이미피케이션 암송 퀘스트 엔진 & 성장 시스템
+       ========================================================================== */
+    let currentQuest = {
+      verse: null,
+      step: 1, // 1 ~ 5
+      step1BlindSet: new Set(),
+      step2ShowHint: false,
+      step2ShowAnswer: false,
+      step3TargetWords: [],
+      step3UserIndices: [],
+      step4Blanks: [],
+      step4CurrentIndex: 0,
+      step4SelectedOptions: {},
+      step5Revealed: false
+    };
+
+    function startQuest(verseId) {
+      const verse = getAllVerses().find(v => v.id === verseId);
+      if (!verse) return;
+
+      currentQuest.verse = verse;
+      currentQuest.step = 1;
+      currentQuest.step1BlindSet = new Set();
+      currentQuest.step2ShowHint = false;
+      currentQuest.step2ShowAnswer = false;
+
+      // 3단계용 단어 리스트 준비
+      const words = verse.text.trim().split(/\s+/);
+      currentQuest.step3TargetWords = words;
+      currentQuest.step3UserIndices = [];
+
+      // 4단계용 빈칸 준비 (문장에서 2~3음절 이상의 의미 있는 단어 2개 선정)
+      const validIndices = [];
+      words.forEach((w, idx) => {
+        const clean = w.replace(/[^가-힣a-zA-Z]/g, '');
+        if (clean.length >= 2) validIndices.push(idx);
+      });
+      // 2개 선정
+      let blank1 = validIndices[Math.floor(validIndices.length * 0.3)] || 0;
+      let blank2 = validIndices[Math.floor(validIndices.length * 0.7)] || (words.length - 1);
+      if (blank1 === blank2 && words.length > 1) {
+        blank2 = (blank1 + 1) % words.length;
+      }
+      currentQuest.step4Blanks = [blank1, blank2].sort((a, b) => a - b);
+      currentQuest.step4CurrentIndex = 0;
+      currentQuest.step4SelectedOptions = {};
+
+      currentQuest.step5Revealed = false;
+
+      switchView('quest');
+      const refEl = document.getElementById('questVerseRef');
+      if (refEl) refEl.textContent = `${verse.reference} (${verse.version || '개역개정'})`;
+
+      renderQuestStage();
+    }
+
+    function renderQuestStage() {
+      const step = currentQuest.step;
+      const verse = currentQuest.verse;
+      const stepIndicator = document.getElementById('questStepIndicator');
+      if (stepIndicator) stepIndicator.textContent = `${step}/5단계`;
+
+      const container = document.getElementById('questStageContainer');
+      if (!container) return;
+
+      // 상단 스텝퍼 HTML
+      const stepperHtml = `
+        <div class="quest-stepper">
+          ${[1, 2, 3, 4, 5].map(s => {
+            let cls = 'step-node';
+            if (s === step) cls += ' active';
+            else if (s < step) cls += ' done';
+            return `<div class="${cls}">${s < step ? '✓' : s}</div>`;
+          }).join('')}
+        </div>
+      `;
+
+      let stageHtml = '';
+      if (step === 1) stageHtml = getStage1Html(verse);
+      else if (step === 2) stageHtml = getStage2Html(verse);
+      else if (step === 3) stageHtml = getStage3Html(verse);
+      else if (step === 4) stageHtml = getStage4Html(verse);
+      else if (step === 5) stageHtml = getStage5Html(verse);
+
+      container.innerHTML = stepperHtml + stageHtml;
+    }
+
+    /* --------------------------------------------------------------------------
+       [1단계: 말씀 심기 (읽기 & 터치 블라인드)]
+       -------------------------------------------------------------------------- */
+    function getStage1Html(verse) {
+      const words = verse.text.trim().split(/\s+/);
+      const wordsHtml = words.map((w, idx) => {
+        const isBlind = currentQuest.step1BlindSet.has(idx);
+        return `<span class="interactive-word ${isBlind ? 'blind' : ''}" onclick="toggleStage1Word(${idx})">${w}</span>`;
+      }).join(' ');
+
+      return `
+        <div class="verse-stage-card">
+          <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
+            🌱 1단계: 말씀 심기 (소리 내어 읽기)
+          </div>
+          <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;">
+            소리 내어 3번 읽어보세요. 단어를 터치하면 가리거나 보일 수 있습니다!
+          </div>
+          <div class="verse-big-text" style="background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 16px;">
+            ${wordsHtml}
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 18px;">
+            <button class="btn btn-outline" style="min-height: 34px; padding: 4px 10px; font-size: 12px;" onclick="setStage1BlindRate(0)">전체 보기</button>
+            <button class="btn btn-outline" style="min-height: 34px; padding: 4px 10px; font-size: 12px;" onclick="setStage1BlindRate(0.35)">30% 가리기</button>
+            <button class="btn btn-outline" style="min-height: 34px; padding: 4px 10px; font-size: 12px;" onclick="setStage1BlindRate(0.7)">70% 가리기</button>
+          </div>
+          <button class="btn btn-primary" style="width: 100%;" onclick="nextQuestStep(10)">
+            충분히 읽었습니다! 다음 퀘스트 &rarr; (+10 EXP)
+          </button>
+        </div>
+      `;
+    }
+
+    function toggleStage1Word(idx) {
+      if (currentQuest.step1BlindSet.has(idx)) {
+        currentQuest.step1BlindSet.delete(idx);
+      } else {
+        currentQuest.step1BlindSet.add(idx);
+      }
+      renderQuestStage();
+    }
+
+    function setStage1BlindRate(rate) {
+      const words = currentQuest.verse.text.trim().split(/\s+/);
+      currentQuest.step1BlindSet.clear();
+      if (rate > 0) {
+        words.forEach((_, idx) => {
+          if (Math.random() < rate) currentQuest.step1BlindSet.add(idx);
+        });
+      }
+      renderQuestStage();
+    }
+
+    /* --------------------------------------------------------------------------
+       [2단계: 초성 돋보기 (첫 글자 암송)]
+       -------------------------------------------------------------------------- */
+    function getStage2Html(verse) {
+      const chosungText = getChosung(verse.text);
+      const showHint = currentQuest.step2ShowHint;
+      const showAnswer = currentQuest.step2ShowAnswer;
+
+      return `
+        <div class="verse-stage-card">
+          <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
+            🔍 2단계: 초성 돋보기 (초성 보고 연상하기)
+          </div>
+          <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;">
+            초성만 보고 전체 말씀을 머릿속으로 떠올리며 소리 내어 외워보세요.
+          </div>
+          <div style="background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 16px; position: relative;">
+            <div style="font-size: 21px; font-weight: 800; letter-spacing: 2px; line-height: 1.8; color: var(--primary);">
+              ${chosungText}
+            </div>
+            ${showHint ? `<div style="font-size: 14px; color: var(--text-muted); margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px;">💡 힌트: ${verse.text}</div>` : ''}
+            ${showAnswer ? `<div style="font-size: 16px; color: var(--text-main); font-weight: 700; margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 10px;">📖 원문 확인:<br>${verse.text}</div>` : ''}
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 18px;">
+            <button class="btn btn-outline" style="flex: 1; min-height: 36px; font-size: 13px;" onclick="toggleStage2Hint()">
+              ${showHint ? '힌트 닫기' : '💡 힌트 살짝 보기'}
+            </button>
+            <button class="btn btn-outline" style="flex: 1; min-height: 36px; font-size: 13px;" onclick="toggleStage2Answer()">
+              ${showAnswer ? '정답 숨기기' : '👁️ 정답 대조하기'}
+            </button>
+          </div>
+          <button class="btn btn-primary" style="width: 100%;" onclick="nextQuestStep(15)">
+            초성 보고 다 외웠습니다! &rarr; (+15 EXP)
+          </button>
+        </div>
+      `;
+    }
+
+    function toggleStage2Hint() {
+      currentQuest.step2ShowHint = !currentQuest.step2ShowHint;
+      renderQuestStage();
+    }
+
+    function toggleStage2Answer() {
+      currentQuest.step2ShowAnswer = !currentQuest.step2ShowAnswer;
+      renderQuestStage();
+    }
+
+    /* --------------------------------------------------------------------------
+       [3단계: 말씀 카드 순서 맞추기 퍼즐]
+       -------------------------------------------------------------------------- */
+    function getStage3Html(verse) {
+      const targetWords = currentQuest.step3TargetWords;
+      const userIndices = currentQuest.step3UserIndices;
+      const isCompleted = userIndices.length === targetWords.length;
+
+      // 셔플된 단어 풀 (인덱스 보존)
+      if (!currentQuest.step3ShuffledPool) {
+        const pool = targetWords.map((word, originalIdx) => ({ word, originalIdx }));
+        // Fisher-Yates shuffle
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        currentQuest.step3ShuffledPool = pool;
+      }
+
+      const boardHtml = userIndices.map(idx => {
+        return `<span class="word-chip-btn in-board">${targetWords[idx]}</span>`;
+      }).join(' ');
+
+      const poolHtml = currentQuest.step3ShuffledPool.map(item => {
+        const isUsed = userIndices.includes(item.originalIdx);
+        return `
+          <button class="word-chip-btn ${isUsed ? 'disabled' : ''}" 
+                  onclick="handleStage3WordClick(${item.originalIdx}, this)">
+            ${item.word}
+          </button>
+        `;
+      }).join(' ');
+
+      return `
+        <div class="verse-stage-card">
+          <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
+            🧩 3단계: 말씀 카드 순서 맞추기
+          </div>
+          <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 14px;">
+            흩어진 단어 카드를 올바른 순서대로 터치하여 문장을 완성하세요!
+          </div>
+
+          <!-- 조립판 -->
+          <div class="puzzle-target-board">
+            ${userIndices.length === 0 ? '<span style="color: var(--text-muted); font-size: 14px; margin: auto;">아래 단어 카드를 차례대로 탭하세요</span>' : boardHtml}
+          </div>
+
+          <!-- 소스 풀 -->
+          <div class="puzzle-source-pool">
+            ${poolHtml}
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="min-height: 42px; font-size: 13px;" onclick="resetStage3()">
+              ↺ 처음부터 다시
+            </button>
+            ${isCompleted ? `
+              <button class="btn btn-primary" style="flex: 1; min-height: 42px;" onclick="nextQuestStep(20)">
+                🎉 완벽합니다! 다음 단계 &rarr; (+20 EXP)
+              </button>
+            ` : `
+              <button class="btn btn-primary" style="flex: 1; min-height: 42px; opacity: 0.5; pointer-events: none;">
+                카드를 모두 맞춰주세요
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function handleStage3WordClick(originalIdx, btnEl) {
+      const nextExpectedIdx = currentQuest.step3UserIndices.length;
+      if (originalIdx === nextExpectedIdx) {
+        // 올바른 순서!
+        currentQuest.step3UserIndices.push(originalIdx);
+        renderQuestStage();
+      } else {
+        // 잘못 누름: 빨간 흔들림 애니메이션 피드백
+        btnEl.classList.add('wrong');
+        showToast('순서가 맞지 않습니다! 다시 생각해 보세요.');
+        setTimeout(() => {
+          btnEl.classList.remove('wrong');
+        }, 400);
+      }
+    }
+
+    function resetStage3() {
+      currentQuest.step3UserIndices = [];
+      renderQuestStage();
+    }
+
+    /* --------------------------------------------------------------------------
+       [4단계: 핵심 빈칸 퀴즈]
+       -------------------------------------------------------------------------- */
+    function getStage4Html(verse) {
+      const words = currentQuest.step3TargetWords;
+      const blanks = currentQuest.step4Blanks;
+      const curBlankOrder = currentQuest.step4CurrentIndex; // 0 or 1
+      const isAllDone = curBlankOrder >= blanks.length;
+
+      // 텍스트 생성: 빈칸인 부분은 [ 빈 칸 1 ], [ 빈 칸 2 ] 로 표시
+      const sentenceHtml = words.map((w, idx) => {
+        const bPos = blanks.indexOf(idx);
+        if (bPos !== -1) {
+          if (bPos < curBlankOrder) {
+            // 이미 맞춘 빈칸
+            return `<strong style="color: var(--primary); background: var(--primary-light); padding: 2px 6px; border-radius: 4px;">${w}</strong>`;
+          } else if (bPos === curBlankOrder) {
+            // 현재 풀어야 하는 빈칸
+            return `<strong style="color: var(--accent-gold); background: var(--accent-gold-light); border: 2px dashed var(--accent-gold); padding: 2px 8px; border-radius: 4px; animation: bounce 0.6s infinite alternate;">[ ? 빈칸 ? ]</strong>`;
+          } else {
+            // 아직 도달하지 않은 빈칸
+            return `<span style="background: var(--bg-subtle); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">[ 빈칸 ]</span>`;
+          }
+        }
+        return `<span>${w}</span>`;
+      }).join(' ');
+
+      // 현재 빈칸의 정답 및 오답 보기 4개 생성
+      let optionsHtml = '';
+      if (!isAllDone) {
+        const targetWordIdx = blanks[curBlankOrder];
+        const correctWord = words[targetWordIdx].replace(/[^가-힣a-zA-Z]/g, '');
+
+        // 매력적인 성경 오답 보기 풀
+        const DUMMY_POOL = ['하나님', '예수님', '사랑', '구원', '은혜', '믿음', '진리', '생명', '영광', '평강', '지혜', '소망', '의', '말씀', '축복', '권세', '성령', '십자가', '마음', '빛'];
+        const wrongPool = DUMMY_POOL.filter(w => w !== correctWord);
+        // 3개 오답 무작위 선택
+        for (let i = wrongPool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [wrongPool[i], wrongPool[j]] = [wrongPool[j], wrongPool[i]];
+        }
+        const fourOptions = [correctWord, wrongPool[0], wrongPool[1], wrongPool[2]];
+        // 셔플
+        for (let i = fourOptions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [fourOptions[i], fourOptions[j]] = [fourOptions[j], fourOptions[i]];
+        }
+
+        optionsHtml = `
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-sub);">
+            [ ? 빈칸 ? ] 에 들어갈 알맞은 단어를 고르세요:
+          </div>
+          <div class="quiz-options-grid">
+            ${fourOptions.map(opt => `
+              <button class="quiz-btn" onclick="handleStage4Answer('${opt}', '${correctWord}', this)">
+                ${opt}
+              </button>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="verse-stage-card">
+          <div style="font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">
+            🎯 4단계: 핵심 빈칸 맞추기 (${curBlankOrder}/${blanks.length})
+          </div>
+          <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;">
+            구절의 핵심 단어를 정확히 기억하고 있는지 확인합니다.
+          </div>
+          <div class="verse-big-text" style="background: var(--bg-subtle); padding: 18px; border-radius: var(--radius-md); margin-bottom: 18px;">
+            ${sentenceHtml}
+          </div>
+          ${optionsHtml}
+          ${isAllDone ? `
+            <div style="margin-top: 16px;">
+              <button class="btn btn-primary" style="width: 100%;" onclick="nextQuestStep(20)">
+                🎉 빈칸 퀘스트 완료! 마스터 보스전으로 &rarr; (+20 EXP)
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function handleStage4Answer(selected, correct, btnEl) {
+      if (selected === correct) {
+        btnEl.classList.add('correct');
+        showToast('정답입니다! 👏');
+        setTimeout(() => {
+          currentQuest.step4CurrentIndex++;
+          renderQuestStage();
+        }, 400);
+      } else {
+        btnEl.classList.add('wrong');
+        showToast('오답입니다! 다시 골라보세요.');
+        setTimeout(() => {
+          btnEl.classList.remove('wrong');
+        }, 400);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       [5단계: 마스터 보스전 (자유 암송 & 최종 검증)]
+       -------------------------------------------------------------------------- */
+    function getStage5Html(verse) {
+      const isRevealed = currentQuest.step5Revealed;
+
+      return `
+        <div class="verse-stage-card">
+          <div style="font-size: 14px; font-weight: 800; color: var(--accent-gold); margin-bottom: 8px;">
+            👑 5단계: 최종 마스터 검증 (보스전)
+          </div>
+          <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;">
+            이제 아무것도 보지 않고 온전하게 암송해 보세요! 소리 내어 암송한 후 [말씀 확인]을 누르세요.
+          </div>
+
+          <div style="min-height: 120px; background: ${isRevealed ? 'var(--primary-light)' : 'var(--bg-subtle)'}; border-radius: var(--radius-md); padding: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; border: 2px solid ${isRevealed ? 'var(--primary)' : 'var(--border-color)'};">
+            ${isRevealed ? `
+              <div style="font-size: 19px; font-weight: 700; line-height: 1.8; color: var(--primary);">
+                ${verse.text}
+              </div>
+            ` : `
+              <div style="font-size: 38px; color: var(--text-muted); letter-spacing: 6px;">
+                ❓ ❓ ❓
+              </div>
+            `}
+          </div>
+
+          ${!isRevealed ? `
+            <div style="margin-bottom: 14px;">
+              <textarea id="stage5TypingCheck" rows="2" placeholder="(선택) 직접 타이핑해서 스스로 점검해볼 수도 있습니다..."
+                        style="width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none;"></textarea>
+            </div>
+            <button class="btn btn-outline" style="width: 100%; min-height: 44px; margin-bottom: 10px;" onclick="revealStage5Answer()">
+              👁️ 가림막 열고 암송 일치 확인
+            </button>
+          ` : `
+            <div style="background: #FFF8E7; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px; font-size: 13px; color: var(--text-main); font-weight: 600;">
+              ✨ 한 글자도 틀리지 않고 마음에 온전히 심으셨나요?
+            </div>
+            <button class="btn btn-primary" style="width: 100%; min-height: 46px; font-size: 16px; background: linear-gradient(135deg, var(--primary), #2D5236);" onclick="completeMasterQuest()">
+              ★ 완벽 마스터 달성! (+35 EXP)
+            </button>
+          `}
+        </div>
+      `;
+    }
+
+    function revealStage5Answer() {
+      currentQuest.step5Revealed = true;
+      renderQuestStage();
+    }
+
+    /* 다음 단계 진행 및 경험치 지급 */
+    function nextQuestStep(expReward) {
+      addExp(expReward);
+      currentQuest.step++;
+      renderQuestStage();
+      window.scrollTo(0, 0);
+    }
+
+    /* 마스터 완료 처리 (TASK 6 연동) */
+    function completeMasterQuest() {
+      const verse = currentQuest.verse;
+      addExp(35);
+
+      if (!state.progress) state.progress = {};
+      state.progress[verse.id] = {
+        level: 5,
+        stars: 3,
+        lastPracticed: Date.now()
+      };
+      saveState();
+
+      // 마스터 축하 팝업 모달 표시
+      showMasterCelebration(verse);
+    }
+
+    /* 경험치 추가 및 레벨업 판별 */
+    function addExp(amount) {
+      const oldExp = state.exp || 0;
+      const newExp = oldExp + amount;
+      state.exp = newExp;
+      saveState();
+      showToast(`+${amount} EXP 획득! 🌟`);
+
+      // 레벨업 체크
+      const thresholds = [150, 500, 1000];
+      thresholds.forEach(th => {
+        if (oldExp < th && newExp >= th) {
+          triggerLevelUpEffect(th);
+        }
+      });
+    }
+
+    function triggerLevelUpEffect(levelExp) {
+      let title = '푸른 새싹(Lv.2)';
+      let icon = '🪴';
+      if (levelExp === 500) { title = '풍성한 가지(Lv.3)'; icon = '🌿'; }
+      if (levelExp === 1000) { title = '열매 맺는 나무(Lv.4 마스터)'; icon = '🌳'; }
+
+      setTimeout(() => {
+        alert(`🎉 축하합니다! 레벨업!\n\n캐릭터가 [${icon} ${title}]으로 성장했습니다!`);
+        renderHeaderAndDashboard();
+      }, 500);
+    }
+
+    function showMasterCelebration(verse) {
+      const container = document.getElementById('questStageContainer');
+      if (!container) return;
+
+      container.innerHTML = `
+        <div class="verse-stage-card congrats-dialog">
+          <div class="congrats-emoji">👑</div>
+          <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">
+            말씀 마스터 달성!
+          </h3>
+          <div style="font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 12px;">
+            ${verse.reference}
+          </div>
+          <p style="font-size: 14px; color: var(--text-sub); line-height: 1.6; margin-bottom: 20px;">
+            "주의 말씀을 마음에 심어 흔들리지 않는 믿음의 용사로 자라났습니다!"
+          </p>
+          <div style="background: var(--bg-subtle); padding: 12px; border-radius: var(--radius-md); margin-bottom: 20px; font-weight: 700; color: var(--accent-gold);">
+            ⭐ 3성 마스터 뱃지 획득 &bull; +35 EXP
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="flex: 1;" onclick="switchView('verses')">
+              말씀 보관함 가기
+            </button>
+            <button class="btn btn-primary" style="flex: 1;" onclick="switchView('home')">
+              홈으로 가기
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ==========================================================================
+       [TASK 4] 나만의 말씀 추가 (자동 파싱, 저장, 삭제)
+       ========================================================================== */
+    const BIBLE_ABBR_MAP = {
+      '창': '창세기', '출': '출애굽기', '레': '레위기', '민': '민수기', '신': '신명기',
+      '수': '여호수아', '삿': '사사기', '룻': '룻기', '삼상': '사무엘상', '삼하': '사무엘하',
+      '왕상': '열왕기상', '왕하': '열왕기하', '대상': '역대상', '대하': '역대하',
+      '스': '에스라', '느': '느헤미야', '에': '에스더', '욥': '욥기', '시': '시편',
+      '잠': '잠언', '전': '전도서', '아': '아가', '사': '이사야', '렘': '예레미야',
+      '애': '예레미야애가', '겔': '에스겔', '단': '다니엘', '호': '호세아', '욜': '요엘',
+      '암': '아모스', '옵': '오바댜', '욘': '요나', '미': '미가', '나': '나훔',
+      '합': '하박국', '습': '스바냐', '학': '학개', '슥': '스가랴', '말': '말라기',
+      '마': '마태복음', '막': '마가복음', '눅': '누가복음', '요': '요한복음', '행': '사도행전',
+      '롬': '로마서', '고전': '고린도전서', '고후': '고린도후서', '갈': '갈라디아서',
+      '엡': '에베소서', '빌': '빌립보서', '골': '골로새서', '살전': '데살로니가전서',
+      '살후': '데살로니가후서', '딤전': '디모데전서', '딤후': '디모데후서', '딛': '디도서',
+      '몬': '빌레몬서', '히': '히브리서', '약': '야고보서', '벧전': '베드로전서',
+      '벧후': '베드로후서', '요일': '요한일서', '요이': '요한이서', '요삼': '요한삼서',
+      '유': '유다서', '계': '요한계시록'
+    };
+
+    let detectedBulkVerses = [];
+
+    /* 성경 본문 텍스트 정제 및 다중 절 분할 알고리즘 */
+    function cleanAndParseVerses(raw, defaultBook, defaultChap, version) {
+      if (!raw || raw.trim().length === 0) return null;
+
+      let book = (defaultBook || '').trim();
+      let chapter = (defaultChap || '').trim();
+
+      // 1. 앞머리에서 책/장 추출 (예: "마태복음 5장", "시편 23편", "롬 8")
+      const headerMatch = raw.match(/^([가-힣a-zA-Z1-3]+)\s*(\d+)[:장편]\s*/);
+      if (headerMatch) {
+        let b = headerMatch[1].trim();
+        if (BIBLE_ABBR_MAP[b]) b = BIBLE_ABBR_MAP[b];
+        book = b;
+        chapter = headerMatch[2].trim();
+      }
+
+      // 2. 웹페이지 노이즈 문구 제거 (버튼명, 잡문구)
+      let cleaned = raw;
+      cleaned = cleaned.replace(/성경구절\s*복사하기/gi, ' ');
+      cleaned = cleaned.replace(/구절\s*복사/gi, ' ');
+      cleaned = cleaned.replace(/듣기|찬양|관주/g, ' ');
+
+      // 3. 소제목 및 병행구절 괄호 정제 (절 번호 숫자는 보존!)
+      cleaned = cleaned.replace(/[가-힣a-zA-Z\s]{2,25}\([가-힣0-9\s:~,-]+\)/g, ' ');
+      cleaned = cleaned.replace(/\([가-힣0-9\s:~,-]+\)/g, ' ');
+
+      // 4. 줄바꿈 및 다중 공백 정리
+      cleaned = cleaned.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+      // 5. 절 번호 매칭 (예: "1 예수께서... 2 입을 열어... 3 심령이...")
+      const regex = /(?:^|\s)(\d{1,3})(?:절|\.|\s)\s*/g;
+      const matches = [];
+      let m;
+      while ((m = regex.exec(cleaned)) !== null) {
+        matches.push({
+          verseNum: parseInt(m[1], 10),
+          index: m.index,
+          fullLength: m[0].length
+        });
+      }
+
+      // 절 번호가 2개 이상 연속/순차적으로 감지되면 다중 절로 판정
+      if (matches.length >= 2) {
+        const verses = [];
+        const baseTimestamp = Date.now();
+
+        for (let i = 0; i < matches.length; i++) {
+          const cur = matches[i];
+          const startIdx = cur.index + cur.fullLength;
+          const endIdx = (i + 1 < matches.length) ? matches[i + 1].index : cleaned.length;
+          let verseText = cleaned.substring(startIdx, endIdx).trim();
+
+          // 앞뒤 남은 부호 및 공백 정리
+          verseText = verseText.replace(/^[.\s,-]+|[.\s,-]+$/g, '').trim();
+
+          if (verseText.length > 0) {
+            const finalBook = book || '성경';
+            const finalChap = chapter || '1';
+            verses.push({
+              id: `custom-${baseTimestamp}-${i + 1}`,
+              book: finalBook,
+              chapter: finalChap,
+              verseNum: String(cur.verseNum),
+              reference: `${finalBook} ${finalChap}:${cur.verseNum}`,
+              text: verseText,
+              version: version || '개역개정'
+            });
+          }
+        }
+
+        if (verses.length >= 2) {
+          return { book, chapter, verses };
+        }
+      }
+
+      return null;
+    }
+
+    function autoParseVerseText() {
+      const raw = document.getElementById('rawVerseInput').value.trim();
+      const elBook = document.getElementById('inputBook');
+      const elChap = document.getElementById('inputChapter');
+      const elVerse = document.getElementById('inputVerseNum');
+      const elVer = document.getElementById('inputVersion');
+
+      const bulkBanner = document.getElementById('bulkDetectBanner');
+      const singleContainer = document.getElementById('singleSubmitContainer');
+
+      if (!raw) {
+        detectedBulkVerses = [];
+        if (bulkBanner) bulkBanner.style.display = 'none';
+        if (singleContainer) singleContainer.style.display = 'block';
+        return;
+      }
+
+      const curBook = elBook ? elBook.value : '';
+      const curChap = elChap ? elChap.value : '';
+      const curVer = elVer ? elVer.value : '개역개정';
+
+      // 1. 다중 절 감지 시도
+      const bulkResult = cleanAndParseVerses(raw, curBook, curChap, curVer);
+
+      if (bulkResult && bulkResult.verses && bulkResult.verses.length >= 2) {
+        detectedBulkVerses = bulkResult.verses;
+
+        // 책과 장 자동 채움
+        if (bulkResult.book && elBook && !elBook.value) elBook.value = bulkResult.book;
+        if (bulkResult.chapter && elChap && !elChap.value) elChap.value = bulkResult.chapter;
+        if (elVerse) elVerse.value = `1~${bulkResult.verses[bulkResult.verses.length - 1].verseNum}`;
+
+        // 다중 절 배너 표시
+        if (bulkBanner) {
+          bulkBanner.style.display = 'block';
+          const elTitle = document.getElementById('bulkTitle');
+          const elCount = document.getElementById('bulkSubmitCount');
+          const elPreview = document.getElementById('bulkPreviewBox');
+
+          const bookName = elBook ? elBook.value : '말씀';
+          const chapNum = elChap ? elChap.value : '';
+
+          if (elTitle) elTitle.textContent = `${bookName} ${chapNum ? chapNum + '장' : ''} (총 ${bulkResult.verses.length}개 절 감지)`;
+          if (elCount) elCount.textContent = `총 ${bulkResult.verses.length}개 절`;
+
+          if (elPreview) {
+            const previewItems = bulkResult.verses.slice(0, 3).map(v => 
+              `<div style="margin-bottom: 4px;"><strong>[${v.reference}]</strong> ${v.text.length > 35 ? v.text.substring(0, 35) + '...' : v.text}</div>`
+            ).join('');
+            const moreText = bulkResult.verses.length > 3 ? `<div style="color: var(--text-muted); font-size: 11px;">... 외 ${bulkResult.verses.length - 3}개 절이 더 있습니다.</div>` : '';
+            elPreview.innerHTML = previewItems + moreText;
+          }
+        }
+        if (singleContainer) singleContainer.style.display = 'none';
+        return;
+      }
+
+      // 2. 단일 절 파싱 (기존 로직)
+      detectedBulkVerses = [];
+      if (bulkBanner) bulkBanner.style.display = 'none';
+      if (singleContainer) singleContainer.style.display = 'block';
+
+      const regex = /^([가-힣a-zA-Z1-3]+)\s*(\d+)[:장]\s*(\d+(?:[~-]\d+)?)(?:절)?\s*(.*)$/;
+      const match = raw.match(regex);
+
+      if (match) {
+        let book = match[1].trim();
+        const chapter = match[2];
+        const verseNum = match[3];
+
+        if (BIBLE_ABBR_MAP[book]) {
+          book = BIBLE_ABBR_MAP[book];
+        }
+
+        if (elBook && !elBook.value) elBook.value = book;
+        if (elChap && !elChap.value) elChap.value = chapter;
+        if (elVerse && !elVerse.value) elVerse.value = verseNum;
+      }
+    }
+
+    /* 다중 절 일괄 등록 */
+    function submitBulkVerses() {
+      if (!detectedBulkVerses || detectedBulkVerses.length === 0) {
+        showToast('등록할 다중 구절이 없습니다.');
+        return;
+      }
+
+      const version = document.getElementById('inputVersion').value || '개역개정';
+      const elBook = document.getElementById('inputBook').value.trim();
+      const elChap = document.getElementById('inputChapter').value.trim();
+
+      // 최신 book/chapter/version 정보 반영
+      const finalVerses = detectedBulkVerses.map((v, i) => {
+        const b = elBook || v.book;
+        const c = elChap || v.chapter;
+        return {
+          id: `custom-${Date.now()}-${i + 1}`,
+          book: b,
+          chapter: c,
+          verseNum: v.verseNum,
+          reference: `${b} ${c}:${v.verseNum}`,
+          text: v.text,
+          version: version
+        };
+      });
+
+      if (!state.customVerses) state.customVerses = [];
+
+      // 기존 사용자 구절 목록 앞에 순서대로 추가
+      // (화면에 1절부터 순서대로 나타나도록 unshift)
+      state.customVerses.unshift(...finalVerses);
+      saveState();
+
+      // 폼 초기화
+      document.getElementById('rawVerseInput').value = '';
+      document.getElementById('inputBook').value = '';
+      document.getElementById('inputChapter').value = '';
+      document.getElementById('inputVerseNum').value = '';
+      detectedBulkVerses = [];
+
+      const bulkBanner = document.getElementById('bulkDetectBanner');
+      const singleContainer = document.getElementById('singleSubmitContainer');
+      if (bulkBanner) bulkBanner.style.display = 'none';
+      if (singleContainer) singleContainer.style.display = 'block';
+
+      closeModal('addVerseModal');
+      showToast(`🎉 총 ${finalVerses.length}개 절이 각각 카드로 등록되었습니다!`);
+
+      // 나만의 말씀 탭으로 전환하여 보여줌
+      selectChapterTab('custom');
+      switchView('verses');
+    }
+
+    /* 단일 구절 등록 (기존) */
+    function submitCustomVerse() {
+      submitSingleCustomVerse();
+    }
+
+    function submitSingleCustomVerse() {
+      const rawText = document.getElementById('rawVerseInput').value.trim();
+      const book = document.getElementById('inputBook').value.trim();
+      const chapter = document.getElementById('inputChapter').value.trim();
+      const verseNum = document.getElementById('inputVerseNum').value.trim();
+      const version = document.getElementById('inputVersion').value;
+
+      let finalText = rawText;
+      const regex = /^([가-힣a-zA-Z1-3]+)\s*(\d+)[:장]\s*(\d+(?:[~-]\d+)?)(?:절)?\s*(.*)$/;
+      const match = rawText.match(regex);
+      if (match && match[4]) {
+        finalText = match[4].trim();
+      }
+
+      // 소제목 및 노이즈 정리
+      finalText = finalText.replace(/성경구절\s*복사하기/gi, ' ');
+      finalText = finalText.replace(/구절\s*복사/gi, ' ');
+      finalText = finalText.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+      if (!finalText) {
+        showToast('구절 본문을 입력해 주세요.');
+        return;
+      }
+
+      let reference = '';
+      if (book) {
+        reference = book;
+        if (chapter) reference += ` ${chapter}`;
+        if (verseNum) reference += `:${verseNum}`;
+      } else {
+        reference = '나만의 말씀';
+      }
+
+      const newVerse = {
+        id: `custom-${Date.now()}`,
+        reference: reference,
+        text: finalText,
+        version: version || '개역개정'
+      };
+
+      if (!state.customVerses) state.customVerses = [];
+      state.customVerses.unshift(newVerse);
+      saveState();
+
+      // 폼 초기화
+      document.getElementById('rawVerseInput').value = '';
+      document.getElementById('inputBook').value = '';
+      document.getElementById('inputChapter').value = '';
+      document.getElementById('inputVerseNum').value = '';
+      detectedBulkVerses = [];
+
+      closeModal('addVerseModal');
+      showToast(`'${reference}' 말씀이 보관함에 추가되었습니다!`);
+
+      selectChapterTab('custom');
+      switchView('verses');
+    }
+
+    function deleteCustomVerse(verseId) {
+      const verse = (state.customVerses || []).find(v => v.id === verseId);
+      const title = verse ? verse.reference : '이 구절';
+      if (!confirm(`'${title}' 구절을 보관함에서 삭제하시겠습니까?`)) {
+        return;
+      }
+
+      state.customVerses = (state.customVerses || []).filter(v => v.id !== verseId);
+      if (state.progress && state.progress[verseId]) {
+        delete state.progress[verseId];
+      }
+      saveState();
+      showToast('구절이 삭제되었습니다.');
+      renderVersesList();
+    }
+
+    /* 모달 제어 */
+    function openProfileModal() {
+      const input = document.getElementById('nicknameInput');
+      if (input) input.value = state.nickname || '';
+      document.getElementById('profileModal').classList.add('open');
+    }
+
+    function openAddVerseModal() {
+      document.getElementById('addVerseModal').classList.add('open');
+    }
+
+    function openSyncModal() {
+      document.getElementById('syncModal').classList.add('open');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('open');
+    }
+
+    function closeModalOnBackdrop(e, id) {
+      if (e.target.id === id) {
+        closeModal(id);
+      }
+    }
+
+    /* 닉네임 저장 */
+    function saveNickname() {
+      const input = document.getElementById('nicknameInput');
+      const val = input.value.trim();
+      if (!val) {
+        showToast('닉네임을 입력해 주세요.');
+        return;
+      }
+      state.nickname = val;
+      saveState();
+      closeModal('profileModal');
+      showToast('닉네임이 저장되었습니다.');
+    }
+
+    /* ==========================================================================
+       [TASK 7] 기기 간 데이터 동기화 (내보내기 & 가져오기)
+       ========================================================================== */
+    function getBackupDataString() {
+      const payload = {
+        app: 'BIBLE_QUEST',
+        version: '1.0',
+        timestamp: Date.now(),
+        data: state
+      };
+      return JSON.stringify(payload, null, 2);
+    }
+
+    function copyBackupToClipboard() {
+      const text = getBackupDataString();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('📋 백업 데이터가 복사되었습니다! 카톡 등에 붙여넣으세요.');
+        }).catch(() => {
+          fallbackCopyText(text);
+        });
+      } else {
+        fallbackCopyText(text);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('📋 백업 데이터가 복사되었습니다!');
+      } catch (err) {
+        showToast('복사에 실패했습니다. 아래 텍스트를 직접 복사하세요.');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function downloadBackupFile() {
+      const text = getBackupDataString();
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.href = url;
+      a.download = `말씀암송퀘스트_백업_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('💾 백업 파일이 다운로드되었습니다.');
+    }
+
+    function restoreBackupText() {
+      const ta = document.getElementById('importTextInput');
+      const val = (ta ? ta.value : '').trim();
+      if (!val) {
+        showToast('복원할 백업 데이터를 입력해 주세요.');
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(val);
+        applyRestoreData(parsed);
+        if (ta) ta.value = '';
+      } catch (e) {
+        showToast('유효하지 않은 백업 데이터 형식입니다.');
+      }
+    }
+
+    function handleFileRestore(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          applyRestoreData(parsed);
+          event.target.value = ''; // 초기화
+        } catch (err) {
+          showToast('파일 파싱에 실패했습니다. 올바른 백업 파일인지 확인하세요.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function applyRestoreData(parsed) {
+      let restoreTarget = parsed;
+      if (parsed.app === 'BIBLE_QUEST' && parsed.data) {
+        restoreTarget = parsed.data;
+      }
+
+      if (!restoreTarget || typeof restoreTarget !== 'object') {
+        showToast('올바르지 않은 데이터입니다.');
+        return;
+      }
+
+      if (!confirm('현재 기기의 기록을 덮어쓰고 백업 데이터를 복원하시겠습니까?')) {
+        return;
+      }
+
+      state.nickname = restoreTarget.nickname || state.nickname || '믿음의 용사';
+      state.exp = typeof restoreTarget.exp === 'number' ? restoreTarget.exp : 0;
+      state.customVerses = Array.isArray(restoreTarget.customVerses) ? restoreTarget.customVerses : [];
+      state.progress = restoreTarget.progress && typeof restoreTarget.progress === 'object' ? restoreTarget.progress : {};
+
+      saveState();
+      closeModal('syncModal');
+      showToast('🎉 모든 데이터가 성공적으로 복원되었습니다!');
+      renderHeaderAndDashboard();
+      renderVersesList();
+    }
+
+    /* 토스트 알림 */
+    let toastTimeout;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+    // 초기 실행
+    window.addEventListener('DOMContentLoaded', initState);
+  </script>
+</body>
+</html>
